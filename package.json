@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.cjs",
   "dependencies": {
-    "@notionhq/client": "^1.0.1"
+    "@notionhq/client": "^1.0.1",
+    "aws-sdk": "^2.1205.0"
   }
 }

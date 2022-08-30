@@ -1,6 +1,8 @@
 var notion_package = require("@notionhq/client");
-const notion = new notion_package.Client({ auth: process.env.NOTION_API_KEY })
-const databaseId = "3d9914a07dd546babd0e8f741c9ebfa7"
+const notion = new notion_package.Client({ auth: process.env.NOTION_API_KEY });
+const environment = process.env.NOTION_ENVIRONMENT;
+console.log(environment);
+const databaseId = "3d9914a07dd546babd0e8f741c9ebfa7";
 
 async function getLearnings() {
   try {
@@ -32,7 +34,7 @@ async function getLearnings() {
     return results;
 
   } catch (error) {
-    console.error(error.body)
+    console.error(error.body);
   }
 }
 
@@ -40,26 +42,34 @@ async function getLearnings() {
 Get the learnings from Lambda, then send the email
 */
 
-const learnings = getLearnings();
-console.log(learnings);
+if (environment == "dev") {
+  (async () => {
+    const learnings = await getLearnings().catch((err) => { console.error(err); });
+    console.log(learnings);
+  }) ();
+} else {
+  var aws = require("aws-sdk");
+  var ses = new aws.SES({ region: "us-east-1" });
 
-var aws = require("aws-sdk");
-var ses = new aws.SES({ region: "us-east-1" });
+  exports.handler = async function (event) {
 
-exports.handler = async function (event) {
-  var params = {
-    Destination: {
-      ToAddresses: ["sharang.phadke@gmail.com"],
-    },
-    Message: {
-      Body: {
-        Text: { Data: learnings.join("\n") },
+    const learnings = await getLearnings().catch((err) => { console.error(err); });
+    console.log(learnings);
+
+    var params = {
+      Destination: {
+        ToAddresses: ["sharang.phadke@gmail.com"],
       },
+      Message: {
+        Body: {
+          Text: { Data: learnings.join("\n") },
+        },
 
-      Subject: { Data: "Your Insights" },
-    },
-    Source: "sharang.phadke@gmail.com",
+        Subject: { Data: "Your Insights" },
+      },
+      Source: "sharang.phadke@gmail.com",
+    };
+
+    return ses.sendEmail(params).promise();
   };
-
-  return ses.sendEmail(params).promise()
-};
+}
